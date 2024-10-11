@@ -9,7 +9,7 @@
 
 int main(void) {
   char *args[MAX_LINE / 2 + 1]; /* command line arguments */
-  char *history[HISTORY_SIZE];  /* history of commands */
+  char *copy[MAX_LINE / 2 + 1]; /* history of commands */
   int history_count = 0;        /* Number of commands in history */
   int should_run = 1;           /* flag to determine when to exit program */
 
@@ -43,35 +43,6 @@ int main(void) {
     args[i] = NULL; /* Null-terminate the args array */
 
     if (i == 1 && strcmp(args[0], "!!") == 0) {
-      if (history_count == 0) {
-        printf("No commands in history.\n");
-        break;
-      }
-      // Use the last command in history
-      printf("Repeating command: %s\n", history[history_count - 1]); // Echo the command
-      strcpy(input, history[history_count - 1]);                     // Copy the last command to input
-
-      // Re-tokenize the input
-      i = 0;
-      token = strtok(input, " ");
-      while (token != NULL) {
-        args[i] = token;
-        i++;
-        token = strtok(NULL, " ");
-      }
-      args[i] = NULL; /* Null-terminate the args array */
-    } else {
-      // Add to history
-      if (history_count < HISTORY_SIZE) {
-        history[history_count] = strdup(input);
-        history_count++;
-      } else {
-        free(history[0]); // Free oldest command
-        for (int j = 1; j < HISTORY_SIZE; j++) {
-          history[j - 1] = history[j]; // Shift history
-        }
-        history[HISTORY_SIZE - 1] = strdup(input);
-      }
     }
 
     /* Check if the last argument is & (for background execution) */
@@ -124,11 +95,6 @@ int main(void) {
         wait(NULL);
       }
     }
-  }
-
-  /* Free history */
-  for (int j = 0; j < history_count; j++) {
-    free(history[j]);
   }
 
   return 0;
