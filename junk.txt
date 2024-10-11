@@ -1,3 +1,0 @@
-  PID TTY          TIME CMD
-87378 pts/7    00:00:00 bash
-91268 pts/7    00:00:00 ps
