@@ -1,16 +1,28 @@
+#include <bits/stdc++.h>
+#include <csignal>
+#include <cstring>
+#include <ctype.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <fstream>
+#include <iostream>
+#include <signal.h>
+#include <sstream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #define MAX_LINE 80     /* The maximum length command */
 #define HISTORY_SIZE 10 /* Number of commands to remember in history */
 
+using namespace std;
+
 int main(void) {
   char *args[MAX_LINE / 2 + 1]; /* command line arguments */
   char *copy[MAX_LINE / 2 + 1]; /* history of commands */
-  int history_count = 0;        /* Number of commands in history */
   int should_run = 1;           /* flag to determine when to exit program */
 
   while (should_run) {
@@ -19,17 +31,13 @@ int main(void) {
 
     /* Read user input */
     char input[MAX_LINE];
-    if (fgets(input, MAX_LINE, stdin) == NULL) {
-      break; // Exit on EOF
-    }
 
-    /* Remove newline character from the end of input */
+    fgets(input, MAX_LINE / 2 + 1, stdin);
     input[strcspn(input, "\n")] = '\0';
 
     /* Check for exit command */
     if (strcmp(input, "exit") == 0) {
-      should_run = 0;
-      continue; // Skip to the next iteration to exit
+      exit(0);
     }
 
     /* Check for !! (repeat last command) */
@@ -37,12 +45,25 @@ int main(void) {
     char *token = strtok(input, " ");
     while (token != NULL) {
       args[i] = token;
+      cout << args[i] << endl;
       i++;
       token = strtok(NULL, " ");
     }
     args[i] = NULL; /* Null-terminate the args array */
 
     if (i == 1 && strcmp(args[0], "!!") == 0) {
+
+      // Re-tokenize the input
+      i = 0;
+      token = strtok(input, " ");
+      while (token != NULL) {
+        args[i] = token;
+        i++;
+        token = strtok(NULL, " ");
+      }
+      args[i] = NULL; /* Null-terminate the args array */
+    } else {
+      // Add to history
     }
 
     /* Check if the last argument is & (for background execution) */
