@@ -41,9 +41,10 @@ void copyArray(char *args[], char *copyArgs[]) {
 
 void print(char *args[]) {
   int i;
-  for (i = 0; args[i] != NULL; i++) {
-    cout << args[i] << " ";
-  }
+  // for (i = 0; args[i] != NULL; i++) {
+  //   cout << args[i] << " ";
+  // }
+
   if (args[i] == NULL) {
     cout << "NULL" << endl;
   }
@@ -117,10 +118,6 @@ int main(void) {
         }
         *args = *copyArgs;
 
-        // printf("osh> ");
-        // fflush(stdout);
-        //  print(args);
-
       } else {
         hasPastCommand = false;
         cout << "No commands in history" << endl;
@@ -138,7 +135,7 @@ int main(void) {
     }
 
     if (pos >= 1) {
-      if (!hasPastCommand) {
+      if (!hasPastCommand || !isfirstRun) {
         copyArray(args, copyArgs);
       }
 
@@ -158,6 +155,7 @@ int main(void) {
         perror("ERROR FORK DIDNT OPEN");
       } else if (pid == 0) {
         /* Child process: Handle input/output redirection */
+        copyArray(args, copyArgs);
         for (int i = 0; i < pos; i++) {
           string s1(args[i]);
 
@@ -170,9 +168,9 @@ int main(void) {
             }
             dup2(fileno(output_file), STDOUT_FILENO);
             fclose(output_file);
-            cout << args[i] << "ugiuiu" << endl;
+
             args[i] = NULL; // Remove output redirection from args
-          } else if (strcmp(args[i], "<") == 0) {
+          } else if (s1 == "<" || s1 == "'<'") {
             // Input redirection
             FILE *input_file = fopen(args[i + 1], "r");
             if (input_file == NULL) {
@@ -186,7 +184,6 @@ int main(void) {
         }
 
         //  Execute the command
-
         execvp(args[0], args);
         exit(0);
       } else {

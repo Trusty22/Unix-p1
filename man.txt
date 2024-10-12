@@ -1,11 +1,9 @@
->ugiuiu
-ls > man.txt NULL
-ls NULL
 <
 >
 a.out
 amn.txt
 file.txt
+hello.txt
 junk
 junk.txt
 k.txt
