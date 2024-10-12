@@ -28,12 +28,22 @@ void handle_sigchld(int sig) {
     ;
 }
 
-void copyArray(char *args[], char *copy[]) {
+void copyArray(char *args[], char *copyArgs[]) {
   int i;
   for (i = 0; args[i] != NULL; i++) {
-    copy[i] = args[i];
+    copyArgs[i] = args[i];
   }
-  copy[i] = NULL;
+  copyArgs[i] = NULL;
+}
+
+void print(char *args[]) {
+  int i;
+  for (i = 0; args[i] != NULL; i++) {
+    cout << args[i] << " ";
+  }
+  if (args[i] == NULL) {
+    cout << "NULL" << endl;
+  }
 }
 
 int main(void) {
@@ -43,6 +53,7 @@ int main(void) {
   char *copyArgs[MAX_LINE / 2 + 1]; /* history of commands */
   int should_run = 1;               /* flag to determine when to exit program */
   bool isfirstRun = true;
+  bool hasPastCommand = false;
 
   while (should_run) {
 
@@ -58,28 +69,47 @@ int main(void) {
     if (strcmp(input, "exit") == 0) {
       exit(0);
     }
-
-    // tokenize
     int pos = 0;
-    char *token = strtok(input, " ");
-    while (token != NULL) {
-      args[pos] = token;
-      pos++;
-      token = strtok(NULL, " ");
+    if (strcmp(input, "") == 0) {
+      pos = 0;
+    } else {
+      pos = 1;
     }
-    args[pos] = NULL;
+    if (isfirstRun) {
+      copyArray(args, copyArgs);
+    }
+    if (strcmp(input, "!!") == 0) {
+      copyArray(args, copyArgs);
+
+      string s1(args[0]);
+
+      if (!isfirstRun) {
+        isfirstRun = false;
+        hasPastCommand = true;
+        copyArray(args, copyArgs);
+
+        printf("osh> ");
+        fflush(stdout);
+        print(args);
+
+      } else {
+        hasPastCommand = false;
+        cout << "No commands in history" << endl;
+      }
+    } else {
+      // tokenize
+      pos = 0;
+      char *token = strtok(input, " ");
+      while (token != NULL) {
+        args[pos] = token;
+        pos++;
+        token = strtok(NULL, " ");
+      }
+      args[pos] = NULL;
+    }
 
     // for history
-    copyArray(args, copyArgs);
     if (pos >= 1) {
-      string s1(args[0]);
-      if (s1 == "!!") {
-        if (!isfirstRun) {
-          cout << "No commands in history" << endl;
-        } else {
-          *args = *copyArgs;
-        }
-      }
 
       /* Check if the last argument is & (for hasAnd execution) */
       int hasAnd = 0;
@@ -88,7 +118,8 @@ int main(void) {
         hasAnd = 1;
         args[pos - 1] = NULL; /* the & from the arguments */
       }
-
+      isfirstRun = false;
+      cout << pos << endl;
       /* Fork a child process */
       int pid = fork();
       if (pid < 0) {
@@ -97,6 +128,7 @@ int main(void) {
       } else if (pid == 0) {
         /* Child process: Handle input/output redirection */
         for (int i = 0; i < pos; i++) {
+
           if (strcmp(args[i], ">") == 0) {
             // Output redirection
             FILE *output_file = fopen(args[i + 1], "w");
@@ -107,8 +139,7 @@ int main(void) {
             dup2(fileno(output_file), STDOUT_FILENO);
             fclose(output_file);
             args[i] = NULL; // Remove output redirection from args
-          }
-          if (strcmp(args[i], "<") == 0) {
+          } else if (strcmp(args[i], "<") == 0) {
             // Input redirection
             FILE *input_file = fopen(args[i + 1], "r");
             if (input_file == NULL) {
@@ -121,10 +152,9 @@ int main(void) {
           }
         }
 
-        // Execute the command
-        if (execvp(args[0], args) == -1) {
-          perror("Error executing command");
-        }
+        //  Execute the command
+        print(args);
+        execvp(args[0], args);
         exit(0);
       } else {
         /* Parent process */
