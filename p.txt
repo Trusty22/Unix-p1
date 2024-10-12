@@ -9,5 +9,6 @@ l
 l.txt
 ls
 ls.txt
+p.txt
 shell
 shell.cpp

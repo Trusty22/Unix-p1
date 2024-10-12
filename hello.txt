@@ -1,6 +1,12 @@
+>ugiuiu
+ls > hello.txt NULL
+ls NULL
 <
+>
 a.out
+amn.txt
 file.txt
+hello.txt
 junk
 junk.txt
 k.txt
@@ -11,6 +17,8 @@ ls
 ls.txt
 lsl.txt
 m.txt
+ma.txt
+man
 man.txt
 p.txt
 shell

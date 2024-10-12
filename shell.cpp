@@ -31,7 +31,10 @@ void handle_sigchld(int sig) {
 void copyArray(char *args[], char *copyArgs[]) {
   int i;
   for (i = 0; args[i] != NULL; i++) {
-    copyArgs[i] = args[i];
+    copyArgs[i] = (char *)malloc(strlen(args[i]) + 1);
+    if (copyArgs[i] != NULL) {
+      strcpy(copyArgs[i], args[i]);
+    }
   }
   copyArgs[i] = NULL;
 }
@@ -61,6 +64,7 @@ int main(void) {
     fflush(stdout);
 
     char input[MAX_LINE / 2 + 1];
+    *args[MAX_LINE / 2 + 1];
 
     fgets(input, MAX_LINE / 2 + 1, stdin);
     input[strcspn(input, "\n")] = '\0';
@@ -75,22 +79,38 @@ int main(void) {
     } else {
       pos = 1;
     }
-    if (isfirstRun) {
-      copyArray(args, copyArgs);
+
+    if (hasPastCommand && !isfirstRun) {
+      hasPastCommand = true;
+      *args = *copyArgs;
     }
+
     if (strcmp(input, "!!") == 0) {
-      copyArray(args, copyArgs);
 
       string s1(args[0]);
 
       if (!isfirstRun) {
         isfirstRun = false;
         hasPastCommand = true;
-        copyArray(args, copyArgs);
+        char dirL[1] = {'<'};
+        char dirR[1] = {'>'};
+
+        dirL[strcspn(dirL, "\n")] = '\0';
+        dirR[strcspn(dirL, "\n")] = '\0';
+
+        string s3(copyArgs[1]);
+        if (s3 == ">") {
+          copyArgs[1] = strtok(dirR, "");
+          args[1] = copyArgs[1];
+        } else if (s3 == "<") {
+          copyArgs[1] = strtok(dirL, "");
+          args[1] = copyArgs[1];
+        }
+        *args = *copyArgs;
 
         printf("osh> ");
         fflush(stdout);
-        print(args);
+        // print(args);
 
       } else {
         hasPastCommand = false;
@@ -106,10 +126,16 @@ int main(void) {
         token = strtok(NULL, " ");
       }
       args[pos] = NULL;
+      // hasPastCommand = true;
     }
-
+    // if (isfirstRun) {
+    //   copyArray(args, copyArgs);
+    // }
     // for history
     if (pos >= 1) {
+      if (!hasPastCommand) {
+        copyArray(args, copyArgs);
+      }
 
       /* Check if the last argument is & (for hasAnd execution) */
       int hasAnd = 0;
@@ -119,7 +145,7 @@ int main(void) {
         args[pos - 1] = NULL; /* the & from the arguments */
       }
       isfirstRun = false;
-      cout << pos << endl;
+
       /* Fork a child process */
       int pid = fork();
       if (pid < 0) {
@@ -128,8 +154,9 @@ int main(void) {
       } else if (pid == 0) {
         /* Child process: Handle input/output redirection */
         for (int i = 0; i < pos; i++) {
+          string s1(args[i]);
 
-          if (strcmp(args[i], ">") == 0) {
+          if (s1 == ">" || s1 == "'>'") {
             // Output redirection
             FILE *output_file = fopen(args[i + 1], "w");
             if (output_file == NULL) {
@@ -138,6 +165,7 @@ int main(void) {
             }
             dup2(fileno(output_file), STDOUT_FILENO);
             fclose(output_file);
+            cout << args[i] << "ugiuiu" << endl;
             args[i] = NULL; // Remove output redirection from args
           } else if (strcmp(args[i], "<") == 0) {
             // Input redirection
@@ -153,7 +181,9 @@ int main(void) {
         }
 
         //  Execute the command
+        print(copyArgs);
         print(args);
+
         execvp(args[0], args);
         exit(0);
       } else {

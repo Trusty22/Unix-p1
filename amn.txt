@@ -1,13 +1,21 @@
+ls > amn.txt NULL
 ls NULL
 <
 a.out
+amn.txt
 file.txt
 junk
 junk.txt
 k.txt
+km.txt
 l
 l.txt
 ls
 ls.txt
+lsl.txt
+m.txt
+man
+man.txt
+p.txt
 shell
 shell.cpp
