@@ -97,13 +97,13 @@ int main(void) {
         isfirstRun = false;
         hasPastCommand = true;
 
-        // loop used for size of copyArgs not being trigered when there is a small array
+        // loop used for size of copyArgs not being triggered when there is a small array
         int count;
         for (int i = 0; copyArgs[i] != NULL; i++) {
           count++;
         }
 
-        // deals with the reaplcing of <> beacuse
+        // deals with the replacing of <> because
         // args has its <> removed after !!. I have no idea how to bring it back except
         // hard coding it in
         if (count > 1) {
@@ -170,7 +170,7 @@ int main(void) {
       int pid = fork();
       if (pid < 0) {
 
-        perror("ERROR FORK DIDNT OPEN");
+        perror("ERROR FORK DIDN'T OPEN");
       } else if (pid == 0) { // child
         copyArray(args, copyArgs);
         for (int i = 0; i < pos; i++) {
@@ -218,7 +218,7 @@ int main(void) {
 
         //  Execute the command
         execvp(args[0], args);
-        cout << "No commands in history" << endl;
+        cout << "Error: Unkown Command" << endl;
         exit(0);
       } else { // parent
         if (!hasAnd) {
