@@ -92,25 +92,34 @@ int main(void) {
       if (!isfirstRun) {
         isfirstRun = false;
         hasPastCommand = true;
-        char dirL[1] = {'<'};
-        char dirR[1] = {'>'};
 
-        dirL[strcspn(dirL, "\n")] = '\0';
-        dirR[strcspn(dirL, "\n")] = '\0';
+        int count;
+        for (int i = 0; copyArgs[i] != NULL; i++) {
+          count++;
+        }
 
-        string s3(copyArgs[1]);
-        if (s3 == ">") {
-          copyArgs[1] = strtok(dirR, "");
-          args[1] = copyArgs[1];
-        } else if (s3 == "<") {
-          copyArgs[1] = strtok(dirL, "");
-          args[1] = copyArgs[1];
+        if (count > 1) {
+          char dirL[1] = {'<'};
+          char dirR[1] = {'>'};
+
+          dirL[strcspn(dirL, "\n")] = '\0';
+          dirR[strcspn(dirL, "\n")] = '\0';
+
+          string s3(copyArgs[1]);
+
+          if (s3 == ">") {
+            copyArgs[1] = strtok(dirR, "");
+            args[1] = copyArgs[1];
+          } else if (s3 == "<") {
+            copyArgs[1] = strtok(dirL, "");
+            args[1] = copyArgs[1];
+          }
         }
         *args = *copyArgs;
 
-        printf("osh> ");
-        fflush(stdout);
-        // print(args);
+        // printf("osh> ");
+        // fflush(stdout);
+        //  print(args);
 
       } else {
         hasPastCommand = false;
@@ -126,12 +135,8 @@ int main(void) {
         token = strtok(NULL, " ");
       }
       args[pos] = NULL;
-      // hasPastCommand = true;
     }
-    // if (isfirstRun) {
-    //   copyArray(args, copyArgs);
-    // }
-    // for history
+
     if (pos >= 1) {
       if (!hasPastCommand) {
         copyArray(args, copyArgs);
@@ -181,8 +186,6 @@ int main(void) {
         }
 
         //  Execute the command
-        print(copyArgs);
-        print(args);
 
         execvp(args[0], args);
         exit(0);

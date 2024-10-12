@@ -1,6 +1,4 @@
 >ugiuiu
-ls > hello.txt NULL
-ls NULL
 <
 >
 a.out
