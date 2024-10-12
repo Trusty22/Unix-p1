@@ -19,6 +19,7 @@ man
 man.txt
 mand.txt
 mande.txt
+mandeep.txt
 p.txt
 shell
 shell.cpp

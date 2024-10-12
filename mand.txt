@@ -18,6 +18,7 @@ ma.txt
 man
 man.txt
 mand.txt
+mande.txt
 p.txt
 shell
 shell.cpp

@@ -22,12 +22,12 @@ using namespace std;
 
 void handle_sigchld(int sig) {
   // Reap any child process to prevent zombie processes
-  // found on stack overflow it solved my & problem of it messing uo my command prompts
+  // found on stack overflow it solved my & problem of it messing up my command prompts
   // due to zombie forks being created.
   while (waitpid(-1, NULL, WNOHANG) > 0)
     ;
 }
-
+// copys the data of args into copyargs
 void copyArray(char *args[], char *copyArgs[]) {
   int i;
   for (i = 0; args[i] != NULL; i++) {
@@ -39,11 +39,12 @@ void copyArray(char *args[], char *copyArgs[]) {
   copyArgs[i] = NULL;
 }
 
+// helpful print for users
 void print(char *args[]) {
   int i;
-  // for (i = 0; args[i] != NULL; i++) {
-  //   cout << args[i] << " ";
-  // }
+  for (i = 0; args[i] != NULL; i++) {
+    cout << args[i] << " ";
+  }
 
   if (args[i] == NULL) {
     cout << "NULL" << endl;
@@ -53,11 +54,12 @@ void print(char *args[]) {
 int main(void) {
   signal(SIGCHLD, handle_sigchld);
 
-  char *args[MAX_LINE / 2 + 1];     /* command line arguments */
-  char *copyArgs[MAX_LINE / 2 + 1]; /* history of commands */
-  int should_run = 1;               /* flag to determine when to exit program */
+  char *args[MAX_LINE / 2 + 1]; /* command line arguments */
+  char *copyArgs[MAX_LINE / 2 + 1];
+  int should_run = 1; /* flag to determine when to exit program */
   bool isfirstRun = true;
   bool hasPastCommand = false;
+  bool firstBang = true;
 
   while (should_run) {
 
@@ -70,10 +72,11 @@ int main(void) {
     fgets(input, MAX_LINE / 2 + 1, stdin);
     input[strcspn(input, "\n")] = '\0';
 
-    /* Check for exit command */
     if (strcmp(input, "exit") == 0) {
       exit(0);
     }
+
+    // position pointer
     int pos = 0;
     if (strcmp(input, "") == 0) {
       pos = 0;
@@ -81,24 +84,28 @@ int main(void) {
       pos = 1;
     }
 
+    // copy becomes args if we have past command and not first run
     if (hasPastCommand && !isfirstRun) {
       hasPastCommand = true;
+      firstBang = false;
       *args = *copyArgs;
     }
 
     if (strcmp(input, "!!") == 0) {
 
-      
-
       if (!isfirstRun) {
         isfirstRun = false;
         hasPastCommand = true;
 
+        // loop used for size of copyArgs not being trigered when there is a small array
         int count;
         for (int i = 0; copyArgs[i] != NULL; i++) {
           count++;
         }
 
+        // deals with the reaplcing of <> beacuse
+        // args has its <> removed after !!. I have no idea how to bring it back except
+        // hard coding it in
         if (count > 1) {
           char dirL[1] = {'<'};
           char dirR[1] = {'>'};
@@ -119,7 +126,9 @@ int main(void) {
         *args = *copyArgs;
 
       } else {
+        // no history
         hasPastCommand = false;
+        firstBang = true;
         cout << "No commands in history" << endl;
       }
     } else {
@@ -132,69 +141,88 @@ int main(void) {
         token = strtok(NULL, " ");
       }
       args[pos] = NULL;
+      firstBang = false;
     }
-
+    // copy if the commands size is >=1 we dont have a past commnd and this isnt first run
     if (pos >= 1) {
       if (!hasPastCommand || !isfirstRun) {
-        copyArray(args, copyArgs);
+        if (!firstBang) {
+          copyArray(args, copyArgs);
+        }
       }
 
-      /* Check if the last argument is & (for hasAnd execution) */
+      // check for &
       int hasAnd = 0;
-      string s2(args[pos - 1]);
+      string s2;
+      if (pos <= 1) {
+
+      } else {
+        s2 = args[pos - 1];
+      }
+
       if (s2 == "&") {
         hasAnd = 1;
-        args[pos - 1] = NULL; /* the & from the arguments */
+        args[pos - 1] = NULL;
       }
       isfirstRun = false;
 
-      /* Fork a child process */
+      // fork
       int pid = fork();
       if (pid < 0) {
-        /* Error occurred during fork */
-        perror("ERROR FORK DIDNT OPEN");
-      } else if (pid == 0) {
-        /* Child process: Handle input/output redirection */
 
+        perror("ERROR FORK DIDNT OPEN");
+      } else if (pid == 0) { // child
         copyArray(args, copyArgs);
         for (int i = 0; i < pos; i++) {
 
           if (!hasAnd) {
             string s1(args[i]);
-
+            // check type of direction
             if (s1 == ">" || s1 == "'>'") {
               // Output redirection
-              FILE *output_file = fopen(args[i + 1], "w");
-              if (output_file == NULL) {
+              FILE *file = fopen(args[i + 1], "w");
+              if (file == NULL) {
                 perror("fopen");
                 exit(1);
               }
-              dup2(fileno(output_file), STDOUT_FILENO);
-              fclose(output_file);
+              dup2(fileno(file), STDOUT_FILENO);
+              fclose(file);
 
               args[i] = NULL; // Remove output redirection from args
             } else if (s1 == "<" || s1 == "'<'") {
               // Input redirection
-              FILE *input_file = fopen(args[i + 1], "r");
-              if (input_file == NULL) {
+              FILE *file = fopen(args[i + 1], "r");
+              if (file == NULL) {
                 perror("fopen");
                 exit(1);
               }
-              dup2(fileno(input_file), STDIN_FILENO);
-              fclose(input_file);
+              dup2(fileno(file), STDIN_FILENO);
+              fclose(file);
               args[i] = NULL; // Remove input redirection from args
             }
           }
         }
 
+        /**
+         *
+         * I ran out of time for pipe however my logic would be:
+         * 1. First find the location of pipe before fork
+         * 2. Split my command into two char* arrays (so split the commands in args[] into two) before fork
+         * 3. fork()
+         * 4. create the pipe and then dup2 in the first child
+         * 5. fork() in the child
+         * 6. dup2 in the second child and execute accordingly
+         *    (so like execvp in the if-else statements of the second fork)
+         *
+         */
+
         //  Execute the command
         execvp(args[0], args);
         cout << "No commands in history" << endl;
         exit(0);
-      } else {
-        /* Parent process */
+      } else { // parent
         if (!hasAnd) {
-          /* Wait for the child to finish if not running in background */
+          // wait
           wait(NULL);
         }
       }
