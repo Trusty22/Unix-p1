@@ -88,7 +88,7 @@ int main(void) {
 
     if (strcmp(input, "!!") == 0) {
 
-      string s1(args[0]);
+      
 
       if (!isfirstRun) {
         isfirstRun = false;
@@ -155,36 +155,41 @@ int main(void) {
         perror("ERROR FORK DIDNT OPEN");
       } else if (pid == 0) {
         /* Child process: Handle input/output redirection */
+
         copyArray(args, copyArgs);
         for (int i = 0; i < pos; i++) {
-          string s1(args[i]);
 
-          if (s1 == ">" || s1 == "'>'") {
-            // Output redirection
-            FILE *output_file = fopen(args[i + 1], "w");
-            if (output_file == NULL) {
-              perror("fopen");
-              exit(1);
-            }
-            dup2(fileno(output_file), STDOUT_FILENO);
-            fclose(output_file);
+          if (!hasAnd) {
+            string s1(args[i]);
 
-            args[i] = NULL; // Remove output redirection from args
-          } else if (s1 == "<" || s1 == "'<'") {
-            // Input redirection
-            FILE *input_file = fopen(args[i + 1], "r");
-            if (input_file == NULL) {
-              perror("fopen");
-              exit(1);
+            if (s1 == ">" || s1 == "'>'") {
+              // Output redirection
+              FILE *output_file = fopen(args[i + 1], "w");
+              if (output_file == NULL) {
+                perror("fopen");
+                exit(1);
+              }
+              dup2(fileno(output_file), STDOUT_FILENO);
+              fclose(output_file);
+
+              args[i] = NULL; // Remove output redirection from args
+            } else if (s1 == "<" || s1 == "'<'") {
+              // Input redirection
+              FILE *input_file = fopen(args[i + 1], "r");
+              if (input_file == NULL) {
+                perror("fopen");
+                exit(1);
+              }
+              dup2(fileno(input_file), STDIN_FILENO);
+              fclose(input_file);
+              args[i] = NULL; // Remove input redirection from args
             }
-            dup2(fileno(input_file), STDIN_FILENO);
-            fclose(input_file);
-            args[i] = NULL; // Remove input redirection from args
           }
         }
 
         //  Execute the command
         execvp(args[0], args);
+        cout << "No commands in history" << endl;
         exit(0);
       } else {
         /* Parent process */
