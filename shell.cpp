@@ -20,17 +20,36 @@
 
 using namespace std;
 
+void handle_sigchld(int sig) {
+  // Reap any child process to prevent zombie processes
+  // found on stack overflow it solved my & problem of it messing uo my command prompts
+  // due to zombie forks being created.
+  while (waitpid(-1, NULL, WNOHANG) > 0)
+    ;
+}
+
+void copyArray(char *args[], char *copy[]) {
+  int i;
+  for (i = 0; args[i] != NULL; i++) {
+    copy[i] = args[i];
+  }
+  copy[i] = NULL;
+}
+
 int main(void) {
-  char *args[MAX_LINE / 2 + 1]; /* command line arguments */
-  char *copy[MAX_LINE / 2 + 1]; /* history of commands */
-  int should_run = 1;           /* flag to determine when to exit program */
+  signal(SIGCHLD, handle_sigchld);
+
+  char *args[MAX_LINE / 2 + 1];     /* command line arguments */
+  char *copyArgs[MAX_LINE / 2 + 1]; /* history of commands */
+  int should_run = 1;               /* flag to determine when to exit program */
+  bool isfirstRun = true;
 
   while (should_run) {
+
     printf("osh> ");
     fflush(stdout);
 
-    /* Read user input */
-    char input[MAX_LINE];
+    char input[MAX_LINE / 2 + 1];
 
     fgets(input, MAX_LINE / 2 + 1, stdin);
     input[strcspn(input, "\n")] = '\0';
@@ -40,80 +59,79 @@ int main(void) {
       exit(0);
     }
 
-    /* Check for !! (repeat last command) */
-    int i = 0;
+    // tokenize
+    int pos = 0;
     char *token = strtok(input, " ");
     while (token != NULL) {
-      args[i] = token;
-      cout << args[i] << endl;
-      i++;
+      args[pos] = token;
+      pos++;
       token = strtok(NULL, " ");
     }
-    args[i] = NULL; /* Null-terminate the args array */
+    args[pos] = NULL;
 
-    if (i == 1 && strcmp(args[0], "!!") == 0) {
-
-      // Re-tokenize the input
-      i = 0;
-      token = strtok(input, " ");
-      while (token != NULL) {
-        args[i] = token;
-        i++;
-        token = strtok(NULL, " ");
-      }
-      args[i] = NULL; /* Null-terminate the args array */
-    } else {
-      // Add to history
-    }
-
-    /* Check if the last argument is & (for background execution) */
-    int background = 0;
-    if (i > 0 && strcmp(args[i - 1], "&") == 0) {
-      background = 1;
-      args[i - 1] = NULL; /* Remove the & from the arguments */
-    }
-
-    /* Fork a child process */
-    pid_t pid = fork();
-    if (pid < 0) {
-      /* Error occurred during fork */
-      printf("Fork failed\n");
-    } else if (pid == 0) {
-      /* Child process: Handle input/output redirection */
-      for (int j = 0; j < i; j++) {
-        if (strcmp(args[j], ">") == 0) {
-          // Output redirection
-          FILE *output_file = fopen(args[j + 1], "w");
-          if (output_file == NULL) {
-            perror("fopen");
-            exit(1);
-          }
-          dup2(fileno(output_file), STDOUT_FILENO);
-          fclose(output_file);
-          args[j] = NULL; // Remove output redirection from args
-        } else if (strcmp(args[j], "<") == 0) {
-          // Input redirection
-          FILE *input_file = fopen(args[j + 1], "r");
-          if (input_file == NULL) {
-            perror("fopen");
-            exit(1);
-          }
-          dup2(fileno(input_file), STDIN_FILENO);
-          fclose(input_file);
-          args[j] = NULL; // Remove input redirection from args
+    // for history
+    copyArray(args, copyArgs);
+    if (pos >= 1) {
+      string s1(args[0]);
+      if (s1 == "!!") {
+        if (!isfirstRun) {
+          cout << "No commands in history" << endl;
+        } else {
+          *args = *copyArgs;
         }
       }
 
-      // Execute the command
-      if (execvp(args[0], args) == -1) {
-        perror("Error executing command");
+      /* Check if the last argument is & (for hasAnd execution) */
+      int hasAnd = 0;
+      string s2(args[pos - 1]);
+      if (s2 == "&") {
+        hasAnd = 1;
+        args[pos - 1] = NULL; /* the & from the arguments */
       }
-      exit(0);
-    } else {
-      /* Parent process */
-      if (!background) {
-        /* Wait for the child to finish if not running in background */
-        wait(NULL);
+
+      /* Fork a child process */
+      int pid = fork();
+      if (pid < 0) {
+        /* Error occurred during fork */
+        perror("ERROR FORK DIDNT OPEN");
+      } else if (pid == 0) {
+        /* Child process: Handle input/output redirection */
+        for (int i = 0; i < pos; i++) {
+          if (strcmp(args[i], ">") == 0) {
+            // Output redirection
+            FILE *output_file = fopen(args[i + 1], "w");
+            if (output_file == NULL) {
+              perror("fopen");
+              exit(1);
+            }
+            dup2(fileno(output_file), STDOUT_FILENO);
+            fclose(output_file);
+            args[i] = NULL; // Remove output redirection from args
+          }
+          if (strcmp(args[i], "<") == 0) {
+            // Input redirection
+            FILE *input_file = fopen(args[i + 1], "r");
+            if (input_file == NULL) {
+              perror("fopen");
+              exit(1);
+            }
+            dup2(fileno(input_file), STDIN_FILENO);
+            fclose(input_file);
+            args[i] = NULL; // Remove input redirection from args
+          }
+        }
+
+        // Execute the command
+        if (execvp(args[0], args) == -1) {
+          perror("Error executing command");
+        }
+        exit(0);
+      } else {
+        /* Parent process */
+        if (!hasAnd) {
+          /* Wait for the child to finish if not running in background */
+          wait(NULL);
+        }
       }
     }
   }
